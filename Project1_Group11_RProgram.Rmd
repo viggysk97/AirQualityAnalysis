@@ -1,0 +1,65 @@
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+# Load the dataset
+data <- read.csv("C:/Users/vigne/Downloads/air+quality/AirQualityUCI.csv", sep=";", dec=",")
+
+# Clean the dataset
+# Remove empty columns
+data <- data[, colSums(is.na(data)) < nrow(data)]
+
+# Convert Date and Time to a datetime column
+data$Datetime <- as.POSIXct(paste(data$Date, data$Time), format="%d/%m/%Y %H.%M.%S")
+
+# Drop original Date and Time columns
+data <- data %>% select(-Date, -Time)
+
+# Replace invalid values (-200) with NA
+data[data == -200] <- NA
+
+# Summary statistics
+summary(data)
+
+# Visualize trends in CO(GT) over time
+ggplot(data, aes(x = Datetime, y = CO.GT.)) +
+  geom_line(color = "blue") +
+  labs(title = "Carbon Monoxide Levels Over Time", x = "Time", y = "CO (GT)") +
+  theme_minimal()
+
+# Scatter plot of Temperature vs CO(GT)
+ggplot(data, aes(x = T, y = CO.GT.)) +
+  geom_point(alpha = 0.6) +
+  labs(title = "Temperature vs CO Levels", x = "Temperature (C)", y = "CO (GT)") +
+  theme_minimal()
+
+# Histogram of Nitrogen Dioxide (NO2) levels
+ggplot(data, aes(x = NO2.GT.)) +
+  geom_histogram(binwidth = 10, fill = "steelblue", color = "black") +
+  labs(title = "Distribution of NO2 Levels", x = "NO2 (GT)", y = "Frequency") +
+  theme_minimal()
+
+# Correlation between sensors and CO(GT)
+cor_matrix <- cor(data %>% select_if(is.numeric), use = "complete.obs")
+print(cor_matrix)
+
+# Boxplot of CO(GT) levels by hour of the day
+data$Hour <- format(data$Datetime, "%H")
+ggplot(data, aes(x = Hour, y = CO.GT.)) +
+  geom_boxplot(fill = "lightgreen", color = "darkgreen") +
+  labs(title = "Hourly Variation in CO Levels", x = "Hour of the Day", y = "CO (GT)") +
+  theme_minimal()
+
+# Time series plot for temperature (T) and relative humidity (RH)
+ggplot(data) +
+  geom_line(aes(x = Datetime, y = T, color = "Temperature")) +
+  geom_line(aes(x = Datetime, y = RH, color = "Relative Humidity")) +
+  labs(title = "Temperature and Humidity Trends Over Time", x = "Time", y = "Values") +
+  scale_color_manual(values = c("Temperature" = "red", "Relative Humidity" = "blue")) +
+  theme_minimal()
+
+# Pair plot for key numerical variables
+pairs(data %>% select(CO.GT., T, RH, NO2.GT.),
+      main = "Pairwise Relationships Among Key Variables",
+      col = "blue")
